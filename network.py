@@ -1,27 +1,38 @@
 import socket
 import sys
+import os
 import multiprocessing
 
-class Network:
+def client_handler(conn, addr, q):
 
-    def client_handler(conn, addr, q):
+        return 'asd'
         while True:
+
             msg_size = conn.recv(4)
             msg = conn.recv(int(msg_size))
             q.put(msg)
+            q.task_done()
 
-    def host(self, port = 9090, max_client_queue = 10, pool_size = 100):
+class Network:
+    
+    def close(self):
+        if not (self.sock is None):
+            self.sock.close()
+
+    def host(self, port = 9090, max_client_queue = 10, pool_size = 10):
         self.sock = socket.socket()
         self.sock.bind(('', port))
         self.sock.listen(max_client_queue)
         
         ppool = multiprocessing.Pool(processes = pool_size)
-        self.queue = multiprocessing.Queue()
+        self.queue = multiprocessing.queues.JoinableQueue()
 
         while True:
             conn, addr = self.sock.accept()
             print('connected: ' + str(addr))
-            ppool.apply_async(Network.client_handler, (conn, addr, self.queue))
+            #print(ppool.apply_async(os.getpid, ()).get(timeout = 1))
+            res = ppool.apply_async(client_handler, (conn, addr, self.queue)).get(timeout = 2)
+            print(res)
 
     def connect(self, ip, port = 9090):
         self.sock = socket.socket()
