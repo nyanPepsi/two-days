@@ -11,4 +11,3 @@ nt2.send('nt2', 3)
 
 nt1.close()
 nt2.close()
-
