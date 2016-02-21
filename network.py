@@ -2,22 +2,22 @@ import socket
 import sys
 import os
 import multiprocessing
-from multiprocessing import Pool
 import threading
+import time
+import struct
 
 def client_handler(conn, q):
     #print conn
     #return ["test"]
     while True:
         #yield "test"
-        msg_size = conn.recv(4)
-        q.put(msg_size)
-        return "test"
-        #yield msg_size
-        #print msg_size
-        #msg = conn.recv(int(msg_size))
-        #q.put(msg)
-        #q.task_done()
+        msg_size_str = conn.recv(4)
+        if not msg_size_str:
+            return
+        msg_size = struct.unpack('I', msg_size_str)[0]
+        msg = conn.recv(msg_size)
+        q.put(msg)
+        q.task_done()
 
 class Network:
     
@@ -38,25 +38,19 @@ class Network:
             conn, addr = self.sock.accept()
             print('connected: ' + str(addr))
 
-            pool = []
             t = threading.Thread(target=client_handler, args=(conn, self.queue))
             t.start()
-            pool.append(t)
-            for el in pool:
-              el.join()
+
             print self.queue.get()
-            #print(ppool.apply_async(os.getpid, ()).get(timeout = 1))
-            #res = ppool.apply_async(client_handler, args = (conn, addr)).get()
-            #print conn
-            #result.append(ppool.apply_async(client_handler, args = ([conn, ])).get())
-            #print(result)
+            print self.queue.get()
 
     def connect(self, ip, port = 9090):
         self.sock = socket.socket()
         self.sock.connect((ip, port))
 
     def send(self, data, size):
-        self.sock.send(str(size))
+        msg_size = struct.pack('I', size)
+        self.sock.send(msg_size)
         self.sock.send(data)
     
     def __exit__(self):
